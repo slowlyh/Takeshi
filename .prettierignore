@@ -1,0 +1,11 @@
+.github/
+.npm/
+.config/
+.git/
+dist/
+logs/
+node_modules/
+sessions/
+tmp/
+temp/
+package-lock.json

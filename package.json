@@ -1,0 +1,60 @@
+{
+	"name": "takeshi",
+	"version": "1.0.0",
+	"description": "Lightweight WhatsApp Multi-Device bot built with Baileys.",
+	"main": "src/index.js",
+	"type": "module",
+	"directories": {
+		"lib": "lib",
+		"commands": "commands"
+	},
+	"scripts": {
+		"test": "node test.js",
+		"start": "node src/index.js",
+		"dev": "node --watch src/index.js",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"format": "prettier --write ."
+	},
+	"author": "AgusXzz",
+	"keywords": [
+		"whatsapp-bot",
+		"js-whatsapp",
+		"baileys-bot",
+		"multi-device",
+		"md"
+	],
+	"license": "ISC",
+	"dependencies": {
+		"awesome-phonenumber": "^2.70.0",
+		"axios": "^1.7.2",
+		"baileys": "^7.0.0-rc.6",
+		"chalk": "^5.3.0",
+		"cheerio": "^1.0.0-rc.12",
+		"dotenv": "^16.4.5",
+		"file-type": "^17.1.1",
+		"fluent-ffmpeg": "^2.1.3",
+		"lowdb": "^3.0.0",
+		"moment-timezone": "^0.5.45",
+		"node-webpmux": "^3.2.1",
+		"syntax-error": "^1.4.0"
+	},
+	"devDependencies": {
+		"@babel/eslint-parser": "^7.24.8",
+		"@eslint/js": "^9.6.0",
+		"@trivago/prettier-plugin-sort-imports": "^5.2.2",
+		"eslint": "^9.6.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-import-resolver-alias": "^1.1.2",
+		"eslint-plugin-import": "^2.29.1",
+		"eslint-plugin-prettier": "^5.1.3",
+		"globals": "^15.8.0",
+		"prettier": "^3.3.3"
+	},
+	"imports": {
+		"#core/*": "./src/core/*.js",
+		"#lib/*": "./src/lib/*.js",
+		"#config/*": "./config/*.js",
+		"#plugins/*": "./commands/*.js"
+	}
+}
