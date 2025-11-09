@@ -260,18 +260,41 @@ global.reloadHandler = async function (restatConn) {
 	return true;
 };
 
-const pluginFolder = global.__dirname(join(__dirname, "../../commands/index"));
+const pluginsDir = global.__dirname(join(__dirname, "../../commands/index"));
+
 const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
+
+function getPluginFiles(dir) {
+	let files = [];
+	const items = fs.readdirSync(dir);
+
+	for (const item of items) {
+		const fullPath = path.join(dir, item);
+		const stat = fs.statSync(fullPath);
+
+		if (stat.isDirectory()) {
+			files = files.concat(getPluginFiles(fullPath));
+		} else if (pluginFilter(item)) {
+			files.push(fullPath);
+		}
+	}
+	return files;
+}
+
 async function filesInit() {
-	for (let filename of fs.readdirSync(pluginFolder).filter(pluginFilter)) {
+	const allFiles = getPluginFiles(pluginsDir);
+
+	for (const fileFullPath of allFiles) {
+		const pluginName = path.relative(pluginsDir, fileFullPath);
+
 		try {
-			let file = global.__filename(join(pluginFolder, filename));
-			const module = await import(file);
-			global.plugins[filename] = module.default || module;
+			const modulePath = global.__filename(fileFullPath);
+			const module = await import(modulePath);
+			global.plugins[pluginName] = module.default || module;
 		} catch (e) {
-			conn.logger.error(`❌ Failed to load plugins ${filename}: ${e}`);
-			delete global.plugins[filename];
+			conn.logger.error(`❌ Failed to load plugins ${pluginName}: ${e}`);
+			delete global.plugins[pluginName];
 		}
 	}
 }
@@ -283,34 +306,39 @@ filesInit()
 	)
 	.catch(console.error);
 
-global.reload = async (_ev, filename) => {
-	if (pluginFilter(filename)) {
-		let dir = global.__filename(join(pluginFolder, filename), true);
-		if (filename in global.plugins) {
+global.reload = async (_ev, fileFullPath) => {
+	if (fileFullPath.startsWith(pluginsDir) && pluginFilter(fileFullPath)) {
+		const pluginName = path.relative(pluginsDir, fileFullPath);
+
+		let dir = global.__filename(fileFullPath, true);
+
+		if (pluginName in global.plugins) {
 			if (fs.existsSync(dir))
-				conn.logger.info(`re - require plugin '${filename}'`);
+				conn.logger.info(`re - require plugin '${pluginName}'`);
 			else {
-				conn.logger.warn(`deleted plugin '${filename}'`);
-				return delete global.plugins[filename];
+				conn.logger.warn(`deleted plugin '${pluginName}'`);
+				return delete global.plugins[pluginName];
 			}
-		} else conn.logger.info(`requiring new plugin '${filename}'`);
-		let err = syntaxerror(fs.readFileSync(dir), filename, {
+		} else conn.logger.info(`requiring new plugin '${pluginName}'`);
+
+		let err = syntaxerror(fs.readFileSync(dir), pluginName, {
 			sourceType: "module",
 			allowAwaitOutsideFunction: true,
 		});
+
 		if (err)
 			conn.logger.error(
-				`syntax error while loading '${filename}'\n${format(err)}`
+				`syntax error while loading '${pluginName}'\n${format(err)}`
 			);
 		else
 			try {
 				const module = await import(
 					`${global.__filename(dir)}?update=${Date.now()}`
 				);
-				global.plugins[filename] = module.default || module;
+				global.plugins[pluginName] = module.default || module;
 			} catch (e) {
 				conn.logger.error(
-					`error require plugin '${filename}\n${format(e)}'`
+					`error require plugin '${pluginName}\n${format(e)}'`
 				);
 			} finally {
 				global.plugins = Object.fromEntries(
@@ -321,8 +349,9 @@ global.reload = async (_ev, filename) => {
 			}
 	}
 };
+
 Object.freeze(global.reload);
-fs.watch(pluginFolder, global.reload);
+fs.watch(pluginsDir, { recursive: true }, global.reload);
 await global.reloadHandler();
 
 // Quick Test

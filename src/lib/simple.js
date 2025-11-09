@@ -1244,20 +1244,29 @@ export function serialize() {
 							enumerable: true,
 							configurable: true,
 						},
+						// --- UPDATED REPLY FOR QUOTED OBJECT ---
 						reply: {
 							/**
 							 * Reply to quoted message
 							 * @param {String|Object} text
-							 * @param {String|false} chatId
 							 * @param {Object} options
 							 */
-							value(text, chatId, options) {
-								return self.conn?.reply(
-									chatId ? chatId : this.chat,
+							value(text, options = {}) {
+								return self.replyFunction(
 									text,
+									this.chat,
 									this.vM,
 									options
-								);
+								); // Menggunakan fungsi helper
+							},
+							enumerable: true,
+						},
+						// --- NEW REACT FUNCTION FOR QUOTED OBJECT ---
+						react: {
+							value(emoji) {
+								return self.conn?.sendMessage(this.chat, {
+									react: { text: emoji, key: this.vM.key },
+								});
 							},
 							enumerable: true,
 						},
@@ -1268,7 +1277,7 @@ export function serialize() {
 							value() {
 								const M = proto.WebMessageInfo;
 								return smsg(
-									conn,
+									self.conn,
 									M.create(M.toObject(this.vM))
 								);
 							},
@@ -1278,7 +1287,7 @@ export function serialize() {
 							/**
 							 * Forward quoted message
 							 * @param {String} jid
-							 *  @param {Boolean} forceForward
+							 * @param {Boolean} forceForward
 							 */
 							value(jid, force = false, options) {
 								return self.conn?.sendMessage(
@@ -1411,11 +1420,80 @@ export function serialize() {
 			enumerable: true,
 			configurable: true,
 		},
+		react: {
+			value(emoji) {
+				return this.conn?.sendMessage(this.chat, {
+					react: { text: emoji, key: this.key },
+				});
+			},
+			enumerable: true,
+		},
+		replay: {
+			value: async function (text, chatId, quotedMsg, options = {}) {
+				try {
+					await this.conn.sendPresenceUpdate("available", chatId);
+					await this.conn.sendPresenceUpdate("composing", chatId);
+
+					const conn = this.conn;
+
+					if (typeof text === "string") {
+						return conn.sendMessage(
+							chatId,
+							{
+								text,
+								contextInfo: {
+									mentionedJid: [
+										...(conn.parseMention
+											? conn.parseMention(text)
+											: []),
+									], // Cek apakah parseMention ada
+									forwardingScore: 999,
+									isForwarded: true,
+									externalAdReply: {
+										title: global.title || "",
+										body: global.body || "",
+										mediaType: 1,
+										previewType: "PHOTO",
+										renderLargerThumbnail: false,
+										thumbnailUrl: global.thumbnailUrl || "",
+										sourceUrl:
+											global.sourceUrl ||
+											"https://github.com/slowlyh",
+									},
+								},
+								...options,
+							},
+							{
+								quoted: quotedMsg,
+								ephemeralExpiration: quotedMsg.expiration,
+								...options,
+							}
+						);
+					} else if (typeof text === "object") {
+						return conn.sendMessage(
+							chatId,
+							{ ...text, ...options },
+							{
+								quoted: quotedMsg,
+								ephemeralExpiration: quotedMsg.expiration,
+								...options,
+							}
+						);
+					}
+				} catch (err) {
+					console.error("Reply error:", err);
+				} finally {
+					await this.conn.sendPresenceUpdate("unavailable", chatId);
+				}
+			},
+			enumerable: false,
+			writable: false,
+		},
 		reply: {
 			value(text, chatId, options) {
-				return this.conn?.reply(
-					chatId ? chatId : this.chat,
+				return this.replay(
 					text,
+					chatId ? chatId : this.chat,
 					this,
 					options
 				);

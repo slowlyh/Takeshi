@@ -83,24 +83,27 @@ export async function handler(chatUpdate) {
 		const isAdmin = isRAdmin || user?.admin == "admin" || false; // Is User Admin?
 		const isBotAdmin = bot?.admin || false; // Are you Admin?
 
-		const ___dirname = path.join(
+		const pluginsDir = path.join(
 			path.dirname(fileURLToPath(import.meta.url)),
 			"../../../commands"
 		);
+
 		for (let name in global.plugins) {
 			let plugin = global.plugins[name];
 			if (!plugin) continue;
 			if (plugin.disabled) continue;
-			const __filename = path.join(___dirname, name);
+
+			const __filename = path.join(pluginsDir, name);
+			const pluginDir = path.dirname(__filename);
+
 			if (typeof plugin.all === "function") {
 				try {
 					await plugin.all.call(this, m, {
 						chatUpdate,
-						__dirname: ___dirname,
+						__dirname: pluginDir,
 						__filename,
 					});
 				} catch (e) {
-					// if (typeof e === 'string') continue
 					console.error(e);
 					for (let [jid] of global.owner.filter(
 						([number, _, isDeveloper]) => isDeveloper && number
@@ -114,10 +117,11 @@ export async function handler(chatUpdate) {
 					}
 				}
 			}
+
 			if (plugin.tags && plugin.tags.includes("admin")) {
-				// global.dfail('restrict', m, this)
 				continue;
 			}
+
 			const str2Regex = (str) =>
 				str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
 			let _prefix = plugin.customPrefix
@@ -126,17 +130,17 @@ export async function handler(chatUpdate) {
 					? conn.prefix
 					: global.prefix;
 			let match = (
-				_prefix instanceof RegExp // RegExp Mode?
+				_prefix instanceof RegExp
 					? [[_prefix.exec(m.text), _prefix]]
-					: Array.isArray(_prefix) // Array?
+					: Array.isArray(_prefix)
 						? _prefix.map((p) => {
 								let re =
-									p instanceof RegExp // RegExp in Array?
+									p instanceof RegExp
 										? p
 										: new RegExp(str2Regex(p));
 								return [re.exec(m.text), re];
 							})
-						: typeof _prefix === "string" // String?
+						: typeof _prefix === "string"
 							? [
 									[
 										new RegExp(str2Regex(_prefix)).exec(
@@ -147,6 +151,7 @@ export async function handler(chatUpdate) {
 								]
 							: [[[], new RegExp()]]
 			).find((p) => p[1]);
+
 			if (typeof plugin.before === "function") {
 				if (
 					await plugin.before.call(this, m, {
@@ -163,13 +168,15 @@ export async function handler(chatUpdate) {
 						isBotAdmin,
 						isPrems,
 						chatUpdate,
-						__dirname: ___dirname,
+						__dirname: pluginDir,
 						__filename,
 					})
 				)
 					continue;
 			}
+
 			if (typeof plugin !== "function") continue;
+
 			if ((usedPrefix = (match[0] || "")[0])) {
 				let noPrefix = m.text.replace(usedPrefix, "");
 				let [command, ...args] = noPrefix.trim().split` `.filter(
@@ -179,17 +186,17 @@ export async function handler(chatUpdate) {
 				let _args = noPrefix.trim().split` `.slice(1);
 				let text = _args.join` `;
 				command = (command || "").toLowerCase();
-				let fail = plugin.fail || global.dfail; // When failed
+				let fail = plugin.fail || global.dfail;
 				let isAccept =
-					plugin.command instanceof RegExp // RegExp Mode?
+					plugin.command instanceof RegExp
 						? plugin.command.test(command)
-						: Array.isArray(plugin.command) // Array?
+						: Array.isArray(plugin.command)
 							? plugin.command.some((cmd) =>
-									cmd instanceof RegExp // RegExp in Array?
+									cmd instanceof RegExp
 										? cmd.test(command)
 										: cmd === command
 								)
-							: typeof plugin.command === "string" // String?
+							: typeof plugin.command === "string"
 								? plugin.command === command
 								: false;
 
@@ -304,7 +311,7 @@ export async function handler(chatUpdate) {
 					isBotAdmin,
 					isPrems,
 					chatUpdate,
-					__dirname: ___dirname,
+					__dirname: pluginsDir,
 					__filename,
 				};
 				try {

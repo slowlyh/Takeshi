@@ -50,6 +50,9 @@ web_modules/
 # Optional npm cache directory
 .npm
 
+# Git cache
+.gitconfig
+
 # Optional eslint cache
 .eslintcache
 
@@ -120,11 +123,10 @@ web_modules/
 .yarn/install-state.gz
 .pnp.*
 
-
 # Custom Additions
 *logs*.txt
 database.json
 sessions*
 sessions/*
 *cookies*.txt
-.
+.config

@@ -1,4 +1,5 @@
 .github/
+.gitconfig
 .npm/
 .config/
 .git/
