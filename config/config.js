@@ -3,7 +3,7 @@ import { unwatchFile, watchFile } from "fs";
 import { fileURLToPath } from "url";
 
 // --- KONFIGURASI BOT ---
-global.pairingNumber = "6283836745241";
+global.pairingNumber = "6283849999299";
 global.owner = [["62895622412769", "Slowly", true]];
 global.mods = ["62895622412769"];
 
