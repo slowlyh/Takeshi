@@ -1,9 +1,11 @@
-import { fork, setupMaster } from "cluster";
+import cluster from "cluster";
 import { unwatchFile, watchFile } from "fs";
 import { createRequire } from "module";
 import { dirname, join, resolve } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
+
+const { fork, setupMaster } = cluster;
 
 console.log("🐾 Starting...");
 
@@ -23,11 +25,11 @@ function start(file) {
 	if (isRunning) return;
 	isRunning = true;
 	let args = [join(__dirname, file), ...process.argv.slice(2)];
-	setupMaster({
+	cluster.setupMaster({
 		exec: args[0],
 		args: args.slice(1),
 	});
-	let p = fork();
+	let p = cluster.fork();
 	p.on("message", (data) => {
 		console.log("[RECEIVED]", data);
 		switch (data) {

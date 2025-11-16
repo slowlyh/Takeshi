@@ -1,10 +1,10 @@
-import { smsg } from "#lib/simple";
 import chalk from "chalk";
 import { unwatchFile, watchFile } from "fs";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { format } from "util";
+import { smsg } from "../lib/simple.js";
 
 const isNumber = (x) => typeof x === "number" && !isNaN(x);
 const delay = (ms) =>
@@ -392,7 +392,7 @@ export async function handler(chatUpdate) {
 		}
 
 		try {
-			await (await import(`#lib/print`)).default(m, this);
+			await (await import(`../lib/print.js`)).default(m, this);
 		} catch (e) {
 			console.log(m, m.quoted, e);
 		}

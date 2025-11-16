@@ -10,3 +10,6 @@ sessions/
 tmp/
 temp/
 package-lock.json
+**/__tests__/**
+**/test/**
+**/tests/**

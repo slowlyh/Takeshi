@@ -4,12 +4,7 @@
 	"description": "Lightweight WhatsApp Multi-Device bot built with Baileys.",
 	"main": "src/index.js",
 	"type": "module",
-	"directories": {
-		"lib": "lib",
-		"commands": "commands"
-	},
 	"scripts": {
-		"test": "node test.js",
 		"start": "node src/index.js",
 		"dev": "node --watch src/index.js",
 		"lint": "eslint .",
@@ -26,9 +21,11 @@
 	],
 	"license": "ISC",
 	"dependencies": {
+		"archiver": "^7.0.1",
 		"awesome-phonenumber": "^2.70.0",
 		"axios": "^1.7.2",
 		"baileys": "^7.0.0-rc.6",
+		"better-sqlite3": "^12.4.1",
 		"chalk": "^5.3.0",
 		"cheerio": "^1.0.0-rc.12",
 		"dotenv": "^16.4.5",
@@ -37,6 +34,7 @@
 		"lowdb": "^3.0.0",
 		"moment-timezone": "^0.5.45",
 		"node-webpmux": "^3.2.1",
+		"performance-now": "^2.1.0",
 		"syntax-error": "^1.4.0"
 	},
 	"devDependencies": {
@@ -52,9 +50,9 @@
 		"prettier": "^3.3.3"
 	},
 	"imports": {
-		"#core/*": "./src/core/*.js",
-		"#lib/*": "./src/lib/*.js",
-		"#config/*": "./config/*.js",
-		"#plugins/*": "./commands/*.js"
+		"#core/": "./src/core/",
+		"#lib/": "./src/lib/",
+		"#config/": "./config/",
+		"#plugins/": "./commands/"
 	}
 }

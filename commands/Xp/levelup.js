@@ -1,4 +1,4 @@
-import { canLevelUp, xpRange } from "#lib/levelling";
+import { canLevelUp, xpRange } from "../../src/lib/levelling.js";
 
 let handler = async (m) => {
 	const name = conn.getName(m.sender);

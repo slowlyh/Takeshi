@@ -1,0 +1,250 @@
+import * as levelling from "#lib/levelling";
+import fs from "fs";
+import moment from "moment-timezone";
+
+const handler = async (m, { conn, usedPrefix: _p, isOwner, args }) => {
+    const allTags = {
+        main: "Main Menu",
+        ai: "AI Menu",
+        downloader: "Downloader Menu",
+        database: "Database Menu",
+        sticker: "Sticker Menu",
+        fun: "Fun Menu",
+        group: "Group Menu",
+        xp: "XP & Level Menu",
+        info: "Info Menu",
+        owner: "Owner Menu",
+    };
+
+    // -------------------------------
+    // 1. Tentukan tag yang diminta
+    // -------------------------------
+    let input = (args[0] || "").toLowerCase();
+    let selectedTag =
+        Object.keys(allTags).includes(input) ||
+        Object.values(allTags).some((v) => v.toLowerCase().includes(input))
+            ? input
+            : null;
+
+    // Jika tidak valid → kasih daftar tag yg benar
+    if (!selectedTag) {
+        return m.reply(
+            `📌 *Tag tidak ditemukan!*\n\nGunakan salah satu:\n\n${Object.keys(allTags)
+                .map((v) => `• *${v}*`)
+                .join("\n")}\n\nContoh: *.menu ai*`
+        );
+    }
+
+    // -------------------------------
+    // 2. Filter tag sesuai kondisi user
+    // -------------------------------
+    if (!isOwner && selectedTag === "owner") {
+        return m.reply("Menu ini hanya untuk Owner.");
+    }
+    if (!m.isGroup && selectedTag === "group") {
+        return m.reply("Menu ini hanya bisa digunakan di grup.");
+    }
+
+    // -------------------------------
+    // 3. Gunakan template menu
+    // -------------------------------
+    const defaultMenu = {
+        before: `
+┌ ◦ *[ %me ]*
+├ *${ucapan()} %name*
+│
+│ ◦ Limit : *%limit*
+│ ◦ Role : *%role*
+│ ◦ Level : *%level (%exp / %maxexp)* [%xp4levelup]
+│ ◦ %totalexp XP secara Total
+│
+│ ◦ Tanggal: *%week, %date*
+│ ◦ Database: %rtotalreg dari %totalreg
+└────
+%readmore`.trim(),
+
+        header: "┌ ◦ *[ %category ]*",
+        body: "│ ◦ %cmd %flags",
+        footer: "└—",
+    };
+
+    try {
+        const plugins = Object.values(global.plugins).filter((p) => !p.disabled);
+
+        const help = plugins.map((p) => ({
+            help: Array.isArray(p.help) ? p.help : [p.help],
+            tags: Array.isArray(p.tags) ? p.tags : [p.tags],
+            prefix: "customPrefix" in p,
+            limit: p.limit ? "🄻" : "",
+            premium: p.premium ? "🄿" : "",
+            owner: p.owner ? "🄾" : "",
+            rowner: p.rowner ? "🄾" : "",
+        }));
+
+        // -------------------------------
+        // 4. Generate menu hanya untuk TAG itu
+        // -------------------------------
+        const commands = help
+            .filter((p) => p.tags.includes(selectedTag))
+            .flatMap((p) =>
+                p.help.map((h) => {
+                    const cmd = p.prefix ? h : `${_p}${h}`;
+                    const flags = [p.limit, p.premium, p.owner, p.rowner]
+                        .filter(Boolean)
+                        .join(" ");
+                    return defaultMenu.body
+                        .replace(/%cmd/g, cmd)
+                        .replace(/%flags/g, flags)
+                        .trim();
+                })
+            )
+            .join("\n");
+
+        if (!commands.trim()) {
+            return m.reply(`Tidak ada perintah untuk tag *${selectedTag}*.`);
+        }
+
+        // -------------------------------
+        // 5. Data user
+        // -------------------------------
+        let { exp, limit, money, level, role, registered } =
+            global.db.data.users[m.sender];
+
+        let { min, xp, max } = levelling.xpRange(level, global.multiplier);
+        let name = registered
+            ? global.db.data.users[m.sender].name
+            : conn.getName(m.sender);
+
+        let d = new Date(Date.now() + 3600000);
+        let locale = "id-ID";
+
+        const replace = {
+            "%": "",
+            p: _p,
+            me: conn.user.name,
+            exp: exp - min,
+            maxexp: xp,
+            totalexp: exp,
+            xp4levelup:
+                max - exp <= 0
+                    ? `Siap untuk *${_p}levelup*`
+                    : `${max - exp} XP lagi untuk levelup`,
+            level,
+            limit,
+            money,
+            name,
+            role,
+            week: d.toLocaleDateString(locale, { weekday: "long" }),
+            date: d.toLocaleDateString(locale, {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            }),
+            totalreg: Object.keys(global.db.data.users).length,
+            rtotalreg: Object.values(global.db.data.users).filter(
+                (u) => u.registered
+            ).length,
+            category: allTags[selectedTag],
+            readmore: readMore,
+        };
+
+        const menuText =
+            defaultMenu.before +
+            "\n" +
+            defaultMenu.header.replace(/%category/g, allTags[selectedTag]) +
+            "\n" +
+            commands +
+            "\n" +
+            defaultMenu.footer;
+
+        const finalText = style(
+            menuText.replace(
+                new RegExp(
+                    `%(${Object.keys(replace)
+                        .sort((a, b) => b.length - a.length)
+                        .join("|")})`,
+                    "g"
+                ),
+                (_, key) => replace[key]
+            )
+        );
+
+        // -------------------------------
+        // 6. Kirim menu
+        // -------------------------------
+        /*
+        conn.sendMessage(
+            m.chat,
+            {
+                document: Buffer.from("OK"),
+                fileName: m.pushName,
+                caption: finalText,
+                contextInfo: {
+                    mentionedJid: conn.parseMention(finalText),
+                    externalAdReply: {
+                        title: global.namebot,
+                        body: `${global.namebot} by ${global.author}`,
+                        thumbnailUrl: "https://files.catbox.moe/k7u3yl.jpeg",
+                        mediaType: 1,
+                        renderLargerThumbnail: true,
+                    },
+                },
+            },
+            { quoted: m }
+        );*/
+        conn.sendMessage(
+    m.chat,
+    {
+        text: finalText,
+        contextInfo: {
+            externalAdReply: {
+                title: global.namebot || "Takeshi",
+                body: global.author || "by Slowlyh~",
+                thumbnailUrl: "https://files.catbox.moe/k7u3yl.jpeg",
+                sourceUrl: "",
+                mediaType: 1,
+                renderLargerThumbnail: true,
+            },
+        },
+    },
+    { quoted: m }
+);
+    } catch (e) {
+        console.error(e);
+        m.reply("Terjadi kesalahan saat menampilkan menu.");
+    }
+};
+
+handler.help = ["menu"];
+handler.command = /^(menu|help)$/i;
+handler.exp = 3;
+
+export default handler;
+
+const more = String.fromCharCode(8206);
+const readMore = more.repeat(4001);
+
+function style(text, style = 1) {
+    const xStr = "abcdefghijklmnopqrstuvwxyz1234567890".split("");
+    const yStr = {
+        1: "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘQʀꜱᴛᴜᴠᴡxʏᴢ1234567890",
+    }[style].split("");
+
+    return text
+        .toLowerCase()
+        .split("")
+        .map((char) => {
+            const i = xStr.indexOf(char);
+            return i !== -1 ? yStr[i] : char;
+        })
+        .join("");
+}
+
+function ucapan() {
+    const hour = moment.tz("Asia/Jakarta").hour();
+    if (hour >= 18) return "Selamat malam";
+    if (hour >= 15) return "Selamat sore";
+    if (hour >= 11) return "Selamat siang";
+    if (hour >= 4) return "Selamat pagi";
+    return "Selamat dinihari";
+}
